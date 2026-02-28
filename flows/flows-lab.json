@@ -1,0 +1,232 @@
+[
+    {
+        "id": "f6f2187d.f17ca8",
+        "type": "tab",
+        "label": "Flow 1",
+        "disabled": false,
+        "info": ""
+    },
+    {
+        "id": "1a2b3c4d5e6f",
+        "type": "tab",
+        "label": "Learning Flow",
+        "disabled": false,
+        "info": ""
+    },
+    {
+        "id": "93e0bd9ca67d5e22",
+        "type": "tab",
+        "label": "Ollama Schema Validation",
+        "disabled": false,
+        "info": ""
+    },
+    {
+        "id": "3cc11d24.ff01a2",
+        "type": "comment",
+        "z": "f6f2187d.f17ca8",
+        "name": "WARNING: please check you have started this container with a volume that is mounted to /data\\n otherwise any flow changes are lost when you redeploy or upgrade the container\\n (e.g. upgrade to a more recent node-red docker image).\\n  If you are using named volumes you can ignore this warning.\\n Double click or see info side panel to learn how to start Node-RED in Docker to save your work",
+        "info": "\nTo start docker with a bind mount volume (-v option), for example:\n\n```\ndocker run -it -p 1880:1880 -v /home/user/node_red_data:/data --name mynodered nodered/node-red\n```\n\nwhere `/home/user/node_red_data` is a directory on your host machine where you want to store your flows.\n\nIf you do not do this then you can experiment and redploy flows, but if you restart or upgrade the container the flows will be disconnected and lost. \n\nThey will still exist in a hidden data volume, which can be recovered using standard docker techniques, but that is much more complex than just starting with a named volume as described above.",
+        "x": 370,
+        "y": 100,
+        "wires": []
+    },
+    {
+        "id": "inject1",
+        "type": "inject",
+        "z": "1a2b3c4d5e6f",
+        "name": "Click Me",
+        "props": [
+            {
+                "p": "payload"
+            }
+        ],
+        "repeat": "",
+        "crontab": "",
+        "once": false,
+        "onceDelay": 0.1,
+        "topic": "",
+        "payload": "Hello from Node-RED!",
+        "payloadType": "str",
+        "x": 150,
+        "y": 120,
+        "wires": [
+            [
+                "function1"
+            ]
+        ]
+    },
+    {
+        "id": "function1",
+        "type": "function",
+        "z": "1a2b3c4d5e6f",
+        "name": "Add Timestamp",
+        "func": "msg.payload = {\n    message: msg.payload,\n    timestamp: new Date().toISOString()\n};\nreturn msg;",
+        "outputs": 1,
+        "timeout": "",
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 360,
+        "y": 120,
+        "wires": [
+            [
+                "debug1"
+            ]
+        ]
+    },
+    {
+        "id": "debug1",
+        "type": "debug",
+        "z": "1a2b3c4d5e6f",
+        "name": "See Output",
+        "active": true,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "payload",
+        "targetType": "msg",
+        "statusVal": "",
+        "statusType": "auto",
+        "x": 580,
+        "y": 120,
+        "wires": []
+    },
+    {
+        "id": "56b5187ce0b24462",
+        "type": "inject",
+        "z": "93e0bd9ca67d5e22",
+        "name": "User Input",
+        "props": [
+            {
+                "p": "payload"
+            }
+        ],
+        "repeat": "",
+        "crontab": "",
+        "once": false,
+        "onceDelay": "",
+        "topic": "",
+        "payload": "My name is Alice and I am 29 years old",
+        "payloadType": "str",
+        "x": 160,
+        "y": 200,
+        "wires": [
+            [
+                "9d7cea44face171f"
+            ]
+        ]
+    },
+    {
+        "id": "9d7cea44face171f",
+        "type": "template",
+        "z": "93e0bd9ca67d5e22",
+        "name": "prompt",
+        "field": "payload",
+        "fieldType": "msg",
+        "format": "handlebars",
+        "syntax": "mustache",
+        "template": "You MUST respond with valid JSON only.\nNo explanations.\nNo markdown.\nNo extra text.\n\nSchema:\n{\n  \"name\": \"string\",\n  \"age\": \"number\"\n}",
+        "x": 340,
+        "y": 360,
+        "wires": [
+            [
+                "1473ed7dae44a004"
+            ]
+        ]
+    },
+    {
+        "id": "1473ed7dae44a004",
+        "type": "http request",
+        "z": "93e0bd9ca67d5e22",
+        "name": "call LLM",
+        "method": "POST",
+        "ret": "obj",
+        "paytoqs": "ignore",
+        "url": "http://localhost:11434/api/generate",
+        "tls": "",
+        "persist": false,
+        "proxy": "",
+        "insecureHTTPParser": false,
+        "authType": "",
+        "senderr": false,
+        "headers": [
+            {
+                "keyType": "other",
+                "keyValue": "Content-Type",
+                "valueType": "other",
+                "valueValue": "application/json"
+            }
+        ],
+        "x": 500,
+        "y": 360,
+        "wires": [
+            [
+                "b0eb640972286faf"
+            ]
+        ]
+    },
+    {
+        "id": "b0eb640972286faf",
+        "type": "function",
+        "z": "93e0bd9ca67d5e22",
+        "name": "extract JSON",
+        "func": "try {\n    let text = msg.payload.response;\n    msg.payload = JSON.parse(text);\n    return msg;\n} catch (e) {\n    msg.error = \"Invalid JSON from LLM\";\n    return [null, msg];\n}",
+        "outputs": 2,
+        "timeout": "",
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 670,
+        "y": 360,
+        "wires": [
+            [
+                "9ebccd79ff82c522"
+            ],
+            [
+                "6d068db71ca00ed5"
+            ]
+        ]
+    },
+    {
+        "id": "9ebccd79ff82c522",
+        "type": "function",
+        "z": "93e0bd9ca67d5e22",
+        "name": "Validate Schema",
+        "func": "let data = msg.payload;\n\nif (typeof data.name !== 'string') return null;\nif (typeof data.age !== 'number') return null;\nif (data.age < 0) return null;\n\nreturn msg;",
+        "outputs": 1,
+        "x": 890,
+        "y": 260,
+        "wires": [
+            [
+                "fdbc0116ce547bd7"
+            ]
+        ]
+    },
+    {
+        "id": "fdbc0116ce547bd7",
+        "type": "debug",
+        "z": "93e0bd9ca67d5e22",
+        "name": "VALID",
+        "active": true,
+        "tosidebar": true,
+        "complete": "payload",
+        "statusVal": "",
+        "statusType": "auto",
+        "x": 1090,
+        "y": 260,
+        "wires": []
+    },
+    {
+        "id": "6d068db71ca00ed5",
+        "type": "debug",
+        "z": "93e0bd9ca67d5e22",
+        "name": "ERROR",
+        "active": true,
+        "complete": "error",
+        "x": 860,
+        "y": 460,
+        "wires": []
+    }
+]

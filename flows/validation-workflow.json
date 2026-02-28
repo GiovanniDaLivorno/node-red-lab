@@ -1,0 +1,93 @@
+[
+  {
+    "id": "flow1",
+    "type": "tab",
+    "label": "Ollama Schema Validation",
+    "disabled": false,
+    "info": ""
+  },
+  {
+    "id": "inject1",
+    "type": "inject",
+    "z": "flow1",
+    "name": "User Input",
+    "props": [{ "p": "payload" }],
+    "payload": "My name is Alice and I am 29 years old",
+    "payloadType": "str",
+    "x": 140,
+    "y": 120,
+    "wires": [["template1"]]
+  },
+  {
+    "id": "template1",
+    "type": "template",
+    "z": "flow1",
+    "name": "Build Prompt",
+    "field": "payload",
+    "fieldType": "msg",
+    "format": "handlebars",
+    "template": "Extract name and age from the text below.\nReturn ONLY valid JSON.\n\nText:\n{{payload}}",
+    "x": 340,
+    "y": 120,
+    "wires": [["http1"]]
+  },
+  {
+    "id": "http1",
+    "type": "http request",
+    "z": "flow1",
+    "name": "Call Ollama",
+    "method": "POST",
+    "ret": "obj",
+    "url": "http://localhost:11434/api/generate",
+    "headers": [
+      { "keyType": "other", "keyValue": "Content-Type", "valueType": "other", "valueValue": "application/json" }
+    ],
+    "x": 540,
+    "y": 120,
+    "wires": [["function_extract"]]
+  },
+  {
+    "id": "function_extract",
+    "type": "function",
+    "z": "flow1",
+    "name": "Extract JSON",
+    "func": "try {\n    let text = msg.payload.response;\n    msg.payload = JSON.parse(text);\n    return msg;\n} catch (e) {\n    msg.error = \"Invalid JSON from LLM\";\n    return [null, msg];\n}",
+    "outputs": 2,
+    "x": 760,
+    "y": 120,
+    "wires": [["validate"], ["debug_error"]]
+  },
+  {
+    "id": "validate",
+    "type": "function",
+    "z": "flow1",
+    "name": "Validate Schema",
+    "func": "let data = msg.payload;\n\nif (typeof data.name !== 'string') return null;\nif (typeof data.age !== 'number') return null;\nif (data.age < 0) return null;\n\nreturn msg;",
+    "outputs": 1,
+    "x": 980,
+    "y": 120,
+    "wires": [["debug_success"]]
+  },
+  {
+    "id": "debug_success",
+    "type": "debug",
+    "z": "flow1",
+    "name": "VALID",
+    "active": true,
+    "complete": "payload",
+    "x": 1180,
+    "y": 100,
+    "wires": []
+  },
+  {
+    "id": "debug_error",
+    "type": "debug",
+    "z": "flow1",
+    "name": "ERROR",
+    "active": true,
+    "complete": "error",
+    "x": 980,
+    "y": 180,
+    "wires": []
+  }
+]
